@@ -3,9 +3,9 @@
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
-from rclpy.action import ActionClient
-from control_msgs.action import FollowJointTrajectory
-from trajectory_msgs.msg import JointTrajectoryPoint
+# from rclpy.action import ActionClient
+# from control_msgs.action import FollowJointTrajectory
+from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 import math
 
 
@@ -20,20 +20,30 @@ class Kinematics(Node):
             '/cmd_vel',
             self.twist_callback,
             10)
+        
+        # Init Publishers
+        self.steering_pub = self.create_publisher(
+            JointTrajectory,
+            '/steering_position_controller/joint_trajectory',
+            10)
+        self.wheel_pub = self.create_publisher(
+            JointTrajectory,
+            '/wheel_velocity_controller/joint_trajectory',
+            10)
 
         # Init Action Client
-        self.steering_action = ActionClient(
-            self,
-            FollowJointTrajectory,
-            '/steering_position_controller/follow_joint_trajectory')
-        self.wheel_action = ActionClient(
-            self,
-            FollowJointTrajectory,
-            '/wheel_velocity_controller/follow_joint_trajectory')
+        # self.steering_action = ActionClient(
+        #     self,
+        #     FollowJointTrajectory,
+        #     '/steering_position_controller/follow_joint_trajectory')
+        # self.wheel_action = ActionClient(
+        #     self,
+        #     FollowJointTrajectory,
+        #     '/wheel_velocity_controller/follow_joint_trajectory')
 
-        # Wait For Server
-        self.steering_action.wait_for_server()
-        self.wheel_action.wait_for_server()
+        # # Wait For Server
+        # self.steering_action.wait_for_server()
+        # self.wheel_action.wait_for_server()
 
     def twist_callback(self, msg):
 
@@ -63,34 +73,56 @@ class Kinematics(Node):
         # m/s to rad/s
         omega_wheel = v_wheel / R
 
-        # ================= Joint Actions ================= #
+        # ================= Joint Publishers ================= #
 
-        # Steering Goal
-        steering_msg = FollowJointTrajectory.Goal()
-        steering_msg.trajectory.joint_names = [
+        # Steering Publisher
+        steering_msg = JointTrajectory()
+        steering_msg.joint_names = [
             'front_left_steering_joint', 'front_right_steering_joint', 'rear_left_steering_joint', 'rear_right_steering_joint']
         steering_position = JointTrajectoryPoint()
         steering_position.positions = [delta, delta, -delta, -delta]
-        steering_msg.trajectory.points.append(steering_position)
+        steering_msg.points.append(steering_position)
 
-        # Wheel Goal
-        wheel_msg = FollowJointTrajectory.Goal()
-        wheel_msg.trajectory.joint_names = [
+        # Wheel Publisher
+        wheel_msg = JointTrajectory()
+        wheel_msg.joint_names = [
             'front_left_wheel_joint', 'front_right_wheel_joint', 'rear_left_wheel_joint', 'rear_right_wheel_joint']
         wheel_velocity = JointTrajectoryPoint()
         wheel_velocity.positions = [0.0, 0.0, 0.0, 0.0]
         wheel_velocity.velocities = [omega_wheel, omega_wheel, omega_wheel, omega_wheel]
-        wheel_msg.trajectory.points.append(wheel_velocity)
+        wheel_msg.points.append(wheel_velocity)
 
-        # Action
-        try:
-            self.steering_action.send_goal_async(steering_msg)
-            self.get_logger().info('Steering goal sent.')
-            self.wheel_action.send_goal_async(wheel_msg)
-            self.get_logger().info('Wheel goal sent.')
+        self.steering_pub.publish(steering_msg)
+        self.wheel_pub.publish(wheel_msg)
+        
+        # ================= Joint Actions ================= #
 
-        except Exception as e:
-            self.get_logger().error(f'Error sending goals: {str(e)}')
+        # # Steering Goal
+        # steering_msg = FollowJointTrajectory.Goal()
+        # steering_msg.trajectory.joint_names = [
+        #     'front_left_steering_joint', 'front_right_steering_joint', 'rear_left_steering_joint', 'rear_right_steering_joint']
+        # steering_position = JointTrajectoryPoint()
+        # steering_position.positions = [delta, delta, -delta, -delta]
+        # steering_msg.trajectory.points.append(steering_position)
+
+        # # Wheel Goal
+        # wheel_msg = FollowJointTrajectory.Goal()
+        # wheel_msg.trajectory.joint_names = [
+        #     'front_left_wheel_joint', 'front_right_wheel_joint', 'rear_left_wheel_joint', 'rear_right_wheel_joint']
+        # wheel_velocity = JointTrajectoryPoint()
+        # wheel_velocity.positions = [0.0, 0.0, 0.0, 0.0]
+        # wheel_velocity.velocities = [omega_wheel, omega_wheel, omega_wheel, omega_wheel]
+        # wheel_msg.trajectory.points.append(wheel_velocity)
+
+        # # Action
+        # try:
+        #     self.steering_action.send_goal_async(steering_msg)
+        #     self.get_logger().info('Steering goal sent.')
+        #     self.wheel_action.send_goal_async(wheel_msg)
+        #     self.get_logger().info('Wheel goal sent.')
+
+        # except Exception as e:
+        #     self.get_logger().error(f'Error sending goals: {str(e)}')
 
 
 def main(args=None):
