@@ -3,8 +3,8 @@
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
-# from rclpy.action import ActionClient
-# from control_msgs.action import FollowJointTrajectory
+from rclpy.action import ActionClient
+from control_msgs.action import FollowJointTrajectory
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 import math
 
@@ -31,7 +31,7 @@ class Kinematics(Node):
             '/wheel_velocity_controller/joint_trajectory',
             10)
 
-        # Init Action Client
+        # # Init Action Client
         # self.steering_action = ActionClient(
         #     self,
         #     FollowJointTrajectory,
@@ -41,7 +41,7 @@ class Kinematics(Node):
         #     FollowJointTrajectory,
         #     '/wheel_velocity_controller/follow_joint_trajectory')
 
-        # # Wait For Server
+        # # # Wait For Server
         # self.steering_action.wait_for_server()
         # self.wheel_action.wait_for_server()
 
